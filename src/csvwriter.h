@@ -20,8 +20,12 @@ public:
 		outFile << "T"			<< "\t" 
 				<< "eAvg"		<< "\t" 
 				<< "eAvgError"	<< "\t"
+				<< "e2Avg"		<< "\t"
+				<< "e2AvgError"	<< "\t"
 				<< "mAvg"		<< "\t" 
-				<< "mAvgError"	<< std::endl;
+				<< "mAvgError"	<< "\t"
+				<< "m2Avg"		<< "\t"
+				<< "m2AvgError"	<< std::endl;
 	}
 	
 	virtual ~CSVWriter(){
