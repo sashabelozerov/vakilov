@@ -8,7 +8,7 @@
 #include <cstdlib>
 #include "mersenne.h"
 #include "swendsen-wang.h"
-
+#include "csvwriter.h"
 using namespace std;
 
 /*
@@ -16,6 +16,7 @@ using namespace std;
  */
 
 int main(int argc, char** argv) {
+	
 	
     float T_min, T_max, T_step;
     cout << " Two-dimensional Ising Model - Swendsen-Wang Algorithm\n"
@@ -34,6 +35,8 @@ int main(int argc, char** argv) {
     int MCSteps;
     cin >> MCSteps;
 
+	CSVWriter writer("out.txt");
+	
     T = T_min;
     while(T <= T_max) {
         initialize();
@@ -54,7 +57,9 @@ int main(int argc, char** argv) {
         cout << " done" << endl;
         computeAverages();
         cout << "T = " << T << " | Energy per spin = " << eAve << " +- " << eError << endl;
-		cout << "T = " << T << " | Energy^2 per spin = " << e2Ave << " +- " << eError << endl;
+		cout << "T = " << T << " | Energy^2 per spin = " << e2Ave << " +- " << e2Error << endl;
+		cout << "T = " << T << " | Magnetization per spin = " << mAve << endl;
+		writer.write(T, eAve, eError, e2Ave, e2Error, mAve, 0, 0, 0);
         T += T_step;
     }
 }

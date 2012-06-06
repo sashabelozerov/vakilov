@@ -215,10 +215,14 @@ void flipClusterSpins() {
 
 double eSum;                // accumulator for energy per spin
 double eSqdSum;             // accumulator for square of energy per spin
+double eQuadSum;			// accumulator for quad of energy per spin
+
+double mSum;				// accumulator for magnetization per spin
+
 int nSum;                   // number of terms in sum
 
 void initializeObservables() {
-    eSum = eSqdSum = 0;     // zero energy accumulators
+    eSum = eSqdSum = eQuadSum = 0;     // zero energy accumulators
     nSum = 0;               // no terms so far
 }
 
@@ -232,18 +236,25 @@ void measureObservables() {
         ssSum += s[i][j]*(s[iNext][j] + s[i][jNext]);
     }
     double e = -(J*ssSum + H*sSum)/N;
-//	cout << "sSum: " << sSum << endl;
-//	cout << "e: " << e << endl;
+	double m = sSum;
     eSum += e;
     eSqdSum += e * e;
+	eQuadSum += e * e * e * e;
+	
+	mSum += m;
+	
     ++nSum;
 }
 
 double eAve;                // average energy per spin
 double eError;              // Monte Carlo error estimate
 
-double e2Ave;
-double e2Error;
+double e2Ave;				// average squared energy per spin
+double e2Error;				// Monte Carlo error estimate
+
+double mAve;
+
+
 
 void computeAverages() {
     eAve = eSum / nSum;
@@ -252,5 +263,11 @@ void computeAverages() {
     eError /= sqrt(double(nSum));
 	
 	e2Ave = eSqdSum / nSum;
+	e2Error = eQuadSum / nSum;
+	e2Error = sqrt(e2Error - e2Ave*e2Ave);
+	e2Error /= sqrt(double(nSum));
+	
+	mAve = mSum / nSum;
+	
 }
 
