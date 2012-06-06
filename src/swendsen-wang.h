@@ -255,7 +255,6 @@ void measureObservables() {
 
 double eAve;                // average energy per spin
 double eError;              // Monte Carlo error estimate
-
 double e2Ave;
 double e2Error;
 double mAve;
@@ -270,12 +269,17 @@ void computeAverages() {
     eError /= sqrt(double(nSum));
     
     e2Ave = eSqdSum / nSum;
-    
+	e2Error = eQuadSum / nSum;
+	e2Error = sqrt(e2Error - e2Ave*e2Ave);
+	e2Error /= sqrt(double(nSum));
+	
     mAve = mSum / nSum;
     mError = mSqdSum / nSum;
     mError = sqrt(mError - mAve*mAve);
     mError /= sqrt(double(nSum));
     
     m2Ave = mSqdSum / nSum;
-	
+	m2Error = mQuadSum / nSum;
+	m2Error = sqrt(m2Error - m2Ave*m2Ave);
+	m2Error /= sqrt(double(nSum));
 }
