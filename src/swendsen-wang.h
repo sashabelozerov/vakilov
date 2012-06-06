@@ -221,9 +221,13 @@ double mSum;				// accumulator for magnetization per spin
 
 int nSum;                   // number of terms in sum
 
+double mSum;
+double mSqdSum;
+
 void initializeObservables() {
     eSum = eSqdSum = eQuadSum = 0;     // zero energy accumulators
     nSum = 0;               // no terms so far
+    mSum = mSqdSum = 0;
 }
 
 void measureObservables() {
@@ -236,38 +240,39 @@ void measureObservables() {
         ssSum += s[i][j]*(s[iNext][j] + s[i][jNext]);
     }
     double e = -(J*ssSum + H*sSum)/N;
-	double m = sSum;
+    double m = sSum / N;
+//	cout << "sSum: " << sSum << endl;
+//	cout << "e: " << e << endl;
     eSum += e;
     eSqdSum += e * e;
-	eQuadSum += e * e * e * e;
-	
-	mSum += m;
-	
+    mSum += m;
+    mSqdSum += m * m;
     ++nSum;
 }
 
 double eAve;                // average energy per spin
 double eError;              // Monte Carlo error estimate
 
-double e2Ave;				// average squared energy per spin
-double e2Error;				// Monte Carlo error estimate
-
+double e2Ave;
+double e2Error;
 double mAve;
-
-
+double m2Ave;
+double mError;
+double m2Error;
 
 void computeAverages() {
     eAve = eSum / nSum;
     eError = eSqdSum / nSum;
     eError = sqrt(eError - eAve*eAve);
     eError /= sqrt(double(nSum));
-	
-	e2Ave = eSqdSum / nSum;
-	e2Error = eQuadSum / nSum;
-	e2Error = sqrt(e2Error - e2Ave*e2Ave);
-	e2Error /= sqrt(double(nSum));
-	
-	mAve = mSum / nSum;
-	
+    
+    e2Ave = eSqdSum / nSum;
+    
+    mAve = mSum / nSum;
+    mError = mSqdSum / nSum;
+    mError = sqrt(mError - mAve*mAve);
+    mError /= sqrt(double(nSum));
+    
+    m2Ave = mSqdSum / nSum;
 }
 

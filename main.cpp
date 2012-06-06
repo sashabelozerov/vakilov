@@ -43,23 +43,28 @@ int main(int argc, char** argv) {
         initializeClusterVariables();
 
         int thermSteps = MCSteps / 5;
-        cout << " Performing " << thermSteps 
-            << " thermalization steps ..." << flush;
+        //cout << " Performing " << thermSteps 
+        //    << " thermalization steps ..." << flush;
         for (int i = 0; i < thermSteps; i++)
             oneMonteCarloStep();
-        cout << " done\n Performing production steps ..." << flush;
+       // cout << " done\n Performing production steps ..." << flush;
 
         initializeObservables();
         for (int i = 0; i < MCSteps; i++) {
             oneMonteCarloStep();
             measureObservables();
         }
-        cout << " done" << endl;
+        //cout << " done" << endl;
         computeAverages();
         cout << "T = " << T << " | Energy per spin = " << eAve << " +- " << eError << endl;
+
 		cout << "T = " << T << " | Energy^2 per spin = " << e2Ave << " +- " << e2Error << endl;
 		cout << "T = " << T << " | Magnetization per spin = " << mAve << endl;
 		writer.write(T, eAve, eError, e2Ave, e2Error, mAve, 0, 0, 0);
+
+		cout << "T = " << T << " | Energy^2 per spin = " << e2Ave << " +- " << eError << endl;
+        cout << "T = " << T << " | M per spin = " << mAve << " +- " << mError << endl;
+        cout << "T = " << T << " | M^2 per spin = " << m2Ave << " +- " << mError << endl;
         T += T_step;
     }
 }
