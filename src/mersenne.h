@@ -1,6 +1,8 @@
 #ifndef __mersenne_h
 #define __mersenne_h
 
+#include <climits>
+
 /* Mersenne Twister random number generator (Matsumora and Nishimura,
  * 1996).  It is a twisted GFSR(624,397) with a period of 2^19937-1.
  */
@@ -25,6 +27,7 @@ static void mt_random_init(void)
     mt_buffer[i]= i * 1073741827;
   mt_index= 0;
 }
+
 
 static unsigned long mt_random(void)
 {
@@ -52,6 +55,17 @@ static unsigned long mt_random(void)
     }
   mt_index= idx + sizeof(unsigned long);
   return *(unsigned long *)((unsigned char *)b + idx);
+}
+
+static double mt_random_d() {
+	
+	return (double) rand() / (double)RAND_MAX;
+	/*
+	 * Yes, you can try uncomment it, but seems like that 
+	 * Mersenne-twister failes with such deals. 
+	 * I don't really know why, just use old proven rand() =)
+	 */
+//	return  (double)mt_random() / (double)ULONG_MAX;
 }
 
 #endif /* __mersenne_h */

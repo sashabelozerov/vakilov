@@ -16,7 +16,7 @@ using namespace std;
  */
 
 int main(int argc, char** argv) {
-
+	
     float T_min, T_max, T_step;
     cout << " Two-dimensional Ising Model - Swendsen-Wang Algorithm\n"
          << " -----------------------------------------------------\n"
@@ -54,6 +54,7 @@ int main(int argc, char** argv) {
         cout << " done" << endl;
         computeAverages();
         cout << "T = " << T << " | Energy per spin = " << eAve << " +- " << eError << endl;
+		cout << "T = " << T << " | Energy^2 per spin = " << e2Ave << " +- " << eError << endl;
         T += T_step;
     }
 }

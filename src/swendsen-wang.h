@@ -17,8 +17,8 @@ double T;                       // temperature
 double H = 0;                   // magnetic field
 int steps = 0;                  // steps so far
 
-static unsigned long qadran() {
-  return mt_random();
+double qadran() {
+  return mt_random_d();
 }
 
 void initialize ( ) {
@@ -27,8 +27,10 @@ void initialize ( ) {
     for (int i = 0; i < Lx; i++)
         s[i] = new int [Ly];
     for (int i = 0; i < Lx; i++)
-        for (int j = 0; j < Ly; j++)
+        for (int j = 0; j < Ly; j++) {
             s[i][j] = qadran() < 0.5 ? +1 : -1;   // hot start
+		}
+	
     steps = 0;
 }
 
@@ -230,6 +232,8 @@ void measureObservables() {
         ssSum += s[i][j]*(s[iNext][j] + s[i][jNext]);
     }
     double e = -(J*ssSum + H*sSum)/N;
+//	cout << "sSum: " << sSum << endl;
+//	cout << "e: " << e << endl;
     eSum += e;
     eSqdSum += e * e;
     ++nSum;
@@ -238,10 +242,15 @@ void measureObservables() {
 double eAve;                // average energy per spin
 double eError;              // Monte Carlo error estimate
 
+double e2Ave;
+double e2Error;
+
 void computeAverages() {
     eAve = eSum / nSum;
     eError = eSqdSum / nSum;
     eError = sqrt(eError - eAve*eAve);
     eError /= sqrt(double(nSum));
+	
+	e2Ave = eSqdSum / nSum;
 }
 
