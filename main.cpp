@@ -6,6 +6,8 @@
  */
 
 #include <cstdlib>
+#include <string>
+
 #include "mersenne.h"
 #include "swendsen-wang.h"
 #include "csvwriter.h"
@@ -35,7 +37,10 @@ int main(int argc, char** argv) {
     int MCSteps;
     cin >> MCSteps;
 
-	CSVWriter writer("out.txt");
+	std::string outFile;
+	cout << " Enter output filename: ";
+	cin >> outFile;
+	CSVWriter writer(outFile);
 	
     T = T_min;
     while(T <= T_max) {
