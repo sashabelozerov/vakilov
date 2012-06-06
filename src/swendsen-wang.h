@@ -30,7 +30,7 @@ void initialize ( ) {
         for (int j = 0; j < Ly; j++) {
             s[i][j] = qadran() < 0.5 ? +1 : -1;   // hot start
 		}
-	
+
     steps = 0;
 }
 
@@ -217,15 +217,16 @@ double eSum;                // accumulator for energy per spin
 double eSqdSum;             // accumulator for square of energy per spin
 double eQuadSum;			// accumulator for quad of energy per spin
 
-double mSum;				// accumulator for magnetization per spin
+double mSum;
+double mSqdSum;
+double mQuadSum;
 
 int nSum;                   // number of terms in sum
 
-double mSum;
-double mSqdSum;
+
 
 void initializeObservables() {
-    eSum = eSqdSum = eQuadSum = 0;     // zero energy accumulators
+    eSum = eSqdSum = 0;     // zero energy accumulators
     nSum = 0;               // no terms so far
     mSum = mSqdSum = 0;
 }
@@ -239,14 +240,16 @@ void measureObservables() {
         int jNext = j == Ly-1 ? 0 : j+1;
         ssSum += s[i][j]*(s[iNext][j] + s[i][jNext]);
     }
-    double e = -(J*ssSum + H*sSum)/N;
-    double m = sSum / N;
-//	cout << "sSum: " << sSum << endl;
-//	cout << "e: " << e << endl;
+    double e = -(J*ssSum + H*sSum)/ (double)N;
+    double m = (double)sSum / (double)N;
+	
     eSum += e;
     eSqdSum += e * e;
+	eQuadSum += e * e * e * e;
+	
     mSum += m;
     mSqdSum += m * m;
+	mQuadSum += m * m * m * m;
     ++nSum;
 }
 
@@ -274,5 +277,5 @@ void computeAverages() {
     mError /= sqrt(double(nSum));
     
     m2Ave = mSqdSum / nSum;
+	
 }
-
