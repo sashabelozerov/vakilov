@@ -116,8 +116,8 @@ int main(int argc, char** argv) {
 
 		sw.computeAverages();
 
-		double c = (sw.energySquare().first - pow(sw.energy().first, 2)) / T*T;
-		double cError = (pow(sw.energy().second, 2) + sw.energySquare().second) / T*T;
+		double c = (sw.energySquare().first - pow(sw.energy().first, 2)) / (T * T);
+		double cError = (pow(sw.energy().second, 2) + sw.energySquare().second) / (T * T);
 
 		double x = (sw.magnetSquare().first - pow(sw.magnet().first, 2)) / T;
 		double xError = (2 * pow(sw.magnet().second, 2)) / T; 
