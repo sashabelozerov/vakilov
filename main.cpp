@@ -123,7 +123,7 @@ int main(int argc, char** argv) {
 		double xError = (2 * pow(sw.magnet().second, 2)) / T; 
 
 		double percent_complete = (T - T_min) / (T_max - T_min) * 100;
-		cout << "\r" << setprecision(3) << percent_complete << "% complete ";
+		cout << "\r" << setprecision(3) << percent_complete << "% complete  ";
 		cout.flush();
 		
 		writer.write(T,
