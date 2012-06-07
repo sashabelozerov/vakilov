@@ -1,0 +1,11 @@
+Release
+Debug
+ipch
+*.sdf
+*.opensdf
+*.user
+*.filters
+
+# Program output
+*.txt
+*.dat
