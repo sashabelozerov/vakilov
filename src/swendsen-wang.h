@@ -233,6 +233,7 @@ void initializeObservables() {
 
 void measureObservables() {
     int sSum = 0, ssSum = 0;
+
     for (int i = 0; i < Lx; i++)
     for (int j = 0; j < Ly; j++) {
         sSum += s[i][j];
@@ -240,8 +241,9 @@ void measureObservables() {
         int jNext = j == Ly-1 ? 0 : j+1;
         ssSum += s[i][j]*(s[iNext][j] + s[i][jNext]);
     }
+
     double e = -(J*ssSum + H*sSum)/ (double)N;
-    double m = (double)sSum / (double)N;
+    double m = fabs((double)sSum / (double)N);
 	
     eSum += e;
     eSqdSum += e * e;
@@ -250,6 +252,7 @@ void measureObservables() {
     mSum += m;
     mSqdSum += m * m;
 	mQuadSum += m * m * m * m;
+
     ++nSum;
 }
 
