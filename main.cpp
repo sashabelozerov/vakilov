@@ -6,6 +6,8 @@
  */
 
 #include <cstdlib>
+#include <iomanip>
+#include <iostream>
 #include <map>
 #include <sstream>
 #include <string>
@@ -99,18 +101,14 @@ int main(int argc, char** argv) {
         initializeClusterVariables();
 
         int thermSteps = MCSteps / 5;
-        cout << " Performing " << thermSteps 
-            << " thermalization steps ..." << flush;
         for (int i = 0; i < thermSteps; i++)
             oneMonteCarloStep();
-        cout << " done\n Performing production steps ..." << flush;
 
         initializeObservables();
         for (int i = 0; i < MCSteps; i++) {
             oneMonteCarloStep();
             measureObservables();
         }
-        cout << " done" << endl;
 
         computeAverages();
 
@@ -120,16 +118,15 @@ int main(int argc, char** argv) {
 		double x = (m2Ave - mAve*mAve) / T;
 		double xError = (2 * mError*mError) / T; 
 
-        cout << "T = " << T << " | Energy per spin = " << eAve << " +- " << eError << endl;
-		cout << "T = " << T << " | Energy^2 per spin = " << e2Ave << " +- " << e2Error << endl;
-        cout << "T = " << T << " | M per spin = " << mAve << " +- " << mError << endl;
-        cout << "T = " << T << " | M^2 per spin = " << m2Ave << " +- " << mError << endl;
-		cout << "T = " << T << " | Heat capacity = " << c << " +- " << cError << endl;
-		cout << "T = " << T << " | Suspectibility = " << x << " +- " << xError << endl;
+		double percent_complete = (T - T_min) / (T_max - T_min) * 100;
+		cout << "\r" << setprecision(3) << percent_complete << "% complete ";
+		cout.flush();
 		
 		writer.write(T, eAve, eError, e2Ave, e2Error, mAve, mError, m2Ave, mError, c, cError, x, xError);
         T += T_step;
     }
+
+	cout << endl;
 }
 
 
