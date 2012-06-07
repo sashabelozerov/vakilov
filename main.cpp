@@ -70,7 +70,9 @@ int main(int argc, char** argv) {
 		if ((iterator = opts.find("outfile")) != opts.end()) {
 			outFile = iterator->second;
 		} else {
-			outFile = "out.txt";
+			stringstream name;
+			name << Lx << "_" << T_min << "-" << T_max << "-" << T_step << "_" << MCSteps << ".txt";
+			outFile = name.str();
 		}
 	} else {
 		cout << " Enter number of spins L in each direction: ";
