@@ -1,288 +1,94 @@
 // Swendsen-Wang cluster algorithm for the 2-D Ising Model
 
-#include <cmath>
-#include <cstdlib>
-#include <iostream>
-#include <fstream>
-#include <list>                 // to save values for autocorrelations
-#include "mersenne.h"
+#ifndef SWENDSEN_WANG_H
+#define SWENDSEN_WANG_H
 
-using namespace std;
+#include <utility>
 
-double J = +1;                  // ferromagnetic coupling
-int Lx, Ly;                     // number of spins in x and y
-int N;                          // number of spins
-int **s;                        // the spins
-double T;                       // temperature
-double H = 0;                   // magnetic field
-int steps = 0;                  // steps so far
+class SwendsenWang {
+public:
+	SwendsenWang();
 
-double qadran() {
-  return mt_random_d();
-}
+	void setCoupling(double J) { this->J = J; }
+	double coupling() const { return J; }
 
-void initialize ( ) {
-    mt_random_init();
-    s = new int* [Lx];
-    for (int i = 0; i < Lx; i++)
-        s[i] = new int [Ly];
-    for (int i = 0; i < Lx; i++)
-        for (int j = 0; j < Ly; j++) {
-            s[i][j] = qadran() < 0.5 ? +1 : -1;   // hot start
-		}
+	void setMagneticField(double H) { this->H = H; }
+	double magneticField() const { return H; }
 
-    steps = 0;
-}
+	void setTemperature(double T) { this->T = T; }
+	double temperature() const { return T; }
 
-bool **iBondFrozen, **jBondFrozen;  // bond lattice - two bonds per spin
-double freezeProbability;           // 1 - e^(-2J/kT)
-int **cluster;                      // cluster labels for spins
-int *labelLabel;                    // to determine proper labels
-bool *sNewChosen;                   // has the new spin value been chosen?
-int *sNew;                          // random new spin values in each cluster
+	void setSizeX(int Lx) { this->Lx = Lx; N = Lx * Ly; }
+	void setSizeY(int Ly) { this->Ly = Ly; N = Lx * Ly; }
 
-void initializeClusterVariables() {
+	int sizeX() const { return Lx; }
+	int sizeY() const { return Ly; }
 
-    // allocate 2-D arrays for bonds in x and y directions    
-    iBondFrozen = new bool* [Lx];
-    jBondFrozen = new bool* [Lx];
-    for (int i = 0; i < Lx; i++) {
-        iBondFrozen[i] = new bool [Ly];
-        jBondFrozen[i] = new bool [Ly];
-    }
+	void initialize();
+	void initializeClusterVariables();
 
-    // compute the bond freezing probability
-    freezeProbability = 1 - exp(-2*J/T);
+	void freezeOrMeltBonds();
+	int properLabel(int label);
+	void labelClusters();
+	void flipClusterSpins();
 
-    // allocate 2-D array for spin cluster labels
-    cluster = new int* [Lx];
-    for (int i = 0; i < Lx; i++)
-        cluster[i] = new int [Ly];
+	void oneMonteCarloStep();
 
-    // allocate arrays of size = number of spins for
-    labelLabel = new int [N];        // proper label pointers
-    sNewChosen = new bool [N];       // setting new cluster spin values
-    sNew = new int [N];              // new cluster spin values
-}
+	void initializeObservables();
+	void measureObservables();
+	void computeAverages();
 
-// declare functions to implement Swendsen-Wang algorithm
-void freezeOrMeltBonds();
-int properLabel(int label);
-void labelClusters();
-void flipClusterSpins();
+	std::pair<double, double> energy() const {
+		return std::make_pair(this->eAve, this->eError);
+	}
+	std::pair<double, double> energySquare() const {
+		return std::make_pair(this->e2Ave, this->e2Error);
+	}
 
-void oneMonteCarloStep() {
+	std::pair<double, double> magnet() const {
+		return std::make_pair(this->mAve, this->mError); 
+	}
+	std::pair<double, double> magnetSquare() const {
+		return std::make_pair(this->m2Ave, this->mError); 
+	}
 
-    // first construct a bond lattice with frozen bonds
-    freezeOrMeltBonds();
+private:
+	int Lx, Ly; // number of spins in x and y
+	int N;      // number of spins
+	int **s;    // the spins
+	double J;   // ferromagnetic coupling
+	double T;   // temperature
+	double H;   // magnetic field
+	int steps;  // steps so far
 
-    // use the Hoshen-Kopelman algorithm to identify and label clusters
-    labelClusters();
+private:
+	bool **iBondFrozen, **jBondFrozen;  // bond lattice - two bonds per spin
+	double freezeProbability;           // 1 - e^(-2J/kT)
+	int **cluster;                      // cluster labels for spins
+	int *labelLabel;                    // to determine proper labels
+	bool *sNewChosen;                   // has the new spin value been chosen?
+	int *sNew;                          // random new spin values in each cluster
 
-    // re-set cluster spins randomly up or down
-    flipClusterSpins();
+private:
+	double eSum;                // accumulator for energy per spin
+	double eSqdSum;             // accumulator for square of energy per spin
+	double eQuadSum;			// accumulator for quad of energy per spin
 
-    ++steps;
-}
+	double mSum;
+	double mSqdSum;
+	double mQuadSum;
 
-void freezeOrMeltBonds() {
+	int nSum;                   // number of terms in sum
 
-    // visit all the spins in the lattice
-    for (int i = 0; i < Lx; i++)
-    for (int j = 0; j < Ly; j++) {
+private:
+	double eAve;                // average energy per spin
+	double eError;              // Monte Carlo error estimate
+	double e2Ave;
+	double e2Error;
+	double mAve;
+	double m2Ave;
+	double mError;
+	double m2Error;
+};
 
-        // freeze or melt the two bonds connected to this spin
-        // using a criterion which depends on the Boltzmann factor
-        iBondFrozen[i][j] = jBondFrozen[i][j] = false;
-
-        // bond in the i direction
-        int iNext = i == Lx-1 ? 0 : i+1;
-        if (s[i][j] == s[iNext][j] && qadran() < freezeProbability)
-            iBondFrozen[i][j] = true;
-
-        // bond in the j direction
-        int jNext = j == Ly-1 ? 0 : j+1;
-        if (s[i][j] == s[i][jNext] && qadran() < freezeProbability)
-            jBondFrozen[i][j] = true;
-    }
-}
-
-int properLabel(int label) {
-    while (labelLabel[label] != label)
-        label = labelLabel[label];
-    return label;
-}
-
-void labelClusters() {
-
-    int label = 0;
-
-    // visit all lattice sites
-    for (int i = 0; i < Lx; i++)
-    for (int j = 0; j < Ly; j++) {
-
-        // find previously visited sites connected to i,j by frozen bonds
-        int bonds = 0;
-        int iBond[4], jBond[4];
-
-        // check bond to i-1,j
-        if (i > 0 && iBondFrozen[i - 1][j]) {
-            iBond[bonds] = i - 1;
-            jBond[bonds++] = j;
-        }
-
-        // apply periodic conditions at the boundary:
-        // if i,j is the last site, check bond to i+1,j
-        if (i == Lx - 1 && iBondFrozen[i][j]) {
-            iBond[bonds] = 0;
-            jBond[bonds++] = j;
-        }
-
-        // check bond to i,j-1
-        if (j > 0 && jBondFrozen[i][j - 1]) {
-            iBond[bonds] = i;
-            jBond[bonds++] = j - 1;
-        }
-
-        // periodic boundary conditions at the last site
-        if (j == Ly - 1 && jBondFrozen[i][j]) {
-            iBond[bonds] = i;
-            jBond[bonds++] = 0;
-        }
-
-        // check number of bonds to previously visited sites
-        if (bonds == 0) { // need to start a new cluster
-            cluster[i][j] = label;
-            labelLabel[label] = label;
-            ++label;
-        } else {          // re-label bonded spins with smallest proper label
-            int minLabel = label;
-            for (int b = 0; b < bonds; b++) {
-                int pLabel = properLabel(cluster[iBond[b]][jBond[b]]);
-                if (minLabel > pLabel)
-                    minLabel = pLabel;
-            }
-
-            // set current site label to smallest proper label
-            cluster[i][j] = minLabel;
-
-            // re-set the proper label links on the previous labels
-            for (int b = 0; b < bonds; b++) {
-                int pLabel = cluster[iBond[b]][jBond[b]];
-                labelLabel[pLabel] = minLabel;
-
-                // re-set label on connected sites
-                cluster[iBond[b]][jBond[b]] = minLabel;
-            }
-        }
-    }
-}
-
-void flipClusterSpins() {
-
-    for (int i = 0; i < Lx; i++)
-    for (int j = 0; j < Ly; j++) {
-
-        // random new cluster spins values have not been set
-        int n = i * Lx + j;
-        sNewChosen[n] = false;
-
-        // replace all labels by their proper values
-        cluster[i][j] = properLabel(cluster[i][j]);
-    }    
-
-    int flips = 0;    // to count number of spins that are flipped
-    for (int i = 0; i < Lx; i++)
-    for (int j = 0; j < Ly; j++) {
-
-        // find the now proper label of the cluster
-        int label = cluster[i][j];
-
-        // choose a random new spin value for cluster
-        // only if this has not already been done
-        if (!sNewChosen[label]) {    
-            sNew[label] = qadran() < 0.5 ? +1 : -1;
-            sNewChosen[label] = true;
-        }
-
-        // re-set the spin value and count number of flips
-        if (s[i][j] != sNew[label]) {
-            s[i][j] = sNew[label];
-            ++flips;
-        }
-    }
-}
-
-double eSum;                // accumulator for energy per spin
-double eSqdSum;             // accumulator for square of energy per spin
-double eQuadSum;			// accumulator for quad of energy per spin
-
-double mSum;
-double mSqdSum;
-double mQuadSum;
-
-int nSum;                   // number of terms in sum
-
-
-
-void initializeObservables() {
-    eSum = eSqdSum = 0;     // zero energy accumulators
-    nSum = 0;               // no terms so far
-    mSum = mSqdSum = 0;
-}
-
-void measureObservables() {
-    int sSum = 0, ssSum = 0;
-
-    for (int i = 0; i < Lx; i++)
-    for (int j = 0; j < Ly; j++) {
-        sSum += s[i][j];
-        int iNext = i == Lx-1 ? 0 : i+1;
-        int jNext = j == Ly-1 ? 0 : j+1;
-        ssSum += s[i][j]*(s[iNext][j] + s[i][jNext]);
-    }
-
-    double e = -(J*ssSum + H*sSum)/ (double)N;
-    double m = fabs((double)sSum / (double)N);
-	
-    eSum += e;
-    eSqdSum += e * e;
-	eQuadSum += e * e * e * e;
-	
-    mSum += m;
-    mSqdSum += m * m;
-	mQuadSum += m * m * m * m;
-
-    ++nSum;
-}
-
-double eAve;                // average energy per spin
-double eError;              // Monte Carlo error estimate
-double e2Ave;
-double e2Error;
-double mAve;
-double m2Ave;
-double mError;
-double m2Error;
-
-void computeAverages() {
-    eAve = eSum / nSum;
-    eError = eSqdSum / nSum;
-    eError = sqrt(eError - eAve*eAve);
-    eError /= sqrt(double(nSum));
-    
-    e2Ave = eSqdSum / nSum;
-	e2Error = eQuadSum / nSum;
-	e2Error = sqrt(e2Error - e2Ave*e2Ave);
-	e2Error /= sqrt(double(nSum));
-	
-    mAve = mSum / nSum;
-    mError = mSqdSum / nSum;
-    mError = sqrt(mError - mAve*mAve);
-    mError /= sqrt(double(nSum));
-    
-    m2Ave = mSqdSum / nSum;
-	m2Error = mQuadSum / nSum;
-	m2Error = sqrt(m2Error - m2Ave*m2Ave);
-	m2Error /= sqrt(double(nSum));
-}
+#endif // SWENDSEN_WANG_H

@@ -17,8 +17,9 @@
 #include "csvwriter.h"
 using namespace std;
 
-int main(int argc, char** argv) {	
-    double T_min, T_max, T_step;
+int main(int argc, char** argv) {
+	int L;
+	double T_min, T_max, T_step;
 	int MCSteps;
 	std::string outFile;
 
@@ -33,14 +34,13 @@ int main(int argc, char** argv) {
 		}
 	}
 
-    cout << " Two-dimensional Ising Model - Swendsen-Wang Algorithm\n"
-         << " -----------------------------------------------------\n";
+	cout << " Two-dimensional Ising Model - Swendsen-Wang Algorithm\n"
+		 << " -----------------------------------------------------\n";
 
 	if (opts["cli"] == "yes") {
 		map<string, string>::const_iterator iterator;
 		if ((iterator = opts.find("L")) != opts.end()) {
-			Lx = Ly = atoi(iterator->second.c_str());
-			N = Lx * Ly; 
+			L = L = atoi(iterator->second.c_str());
 		} else {
 			cerr << "L is not set" << endl;
 			exit(1);
@@ -73,14 +73,12 @@ int main(int argc, char** argv) {
 			outFile = iterator->second;
 		} else {
 			stringstream name;
-			name << Lx << "_" << T_min << "-" << T_max << "-" << T_step << "_" << MCSteps << ".txt";
+			name << L << "_" << T_min << "-" << T_max << "-" << T_step << "_" << MCSteps << ".txt";
 			outFile = name.str();
 		}
 	} else {
 		cout << " Enter number of spins L in each direction: ";
-		cin >> Lx;
-		Ly = Lx;
-		N = Lx * Ly;
+		cin >> L;
 		cout << " Enter min T: ";
 		cin >> T_min;
 		cout << " Enter max T: ";
@@ -95,36 +93,54 @@ int main(int argc, char** argv) {
 
 	CSVWriter writer(outFile);
 	
-    T = T_min;
-    while(T <= T_max) {
-        initialize();
-        initializeClusterVariables();
+	SwendsenWang sw;
 
-        int thermSteps = MCSteps / 5;
-        for (int i = 0; i < thermSteps; i++)
-            oneMonteCarloStep();
+	sw.setSizeX(L);
+	sw.setSizeY(L);
 
-        initializeObservables();
-        for (int i = 0; i < MCSteps; i++) {
-            oneMonteCarloStep();
-            measureObservables();
-        }
+	for (double T = T_min; T <= T_max; T += T_step) {
+		sw.setTemperature(T);
 
-        computeAverages();
+		sw.initialize();
+		sw.initializeClusterVariables();
 
-		double c = (e2Ave - eAve*eAve) / T*T;
-		double cError = (eError*eError + e2Error) / T*T;
+		int thermSteps = MCSteps / 5;
+		for (int i = 0; i < thermSteps; i++)
+			sw.oneMonteCarloStep();
 
-		double x = (m2Ave - mAve*mAve) / T;
-		double xError = (2 * mError*mError) / T; 
+		sw.initializeObservables();
+		for (int i = 0; i < MCSteps; i++) {
+			sw.oneMonteCarloStep();
+			sw.measureObservables();
+		}
+
+		sw.computeAverages();
+
+		double c = (sw.energySquare().first - pow(sw.energy().first, 2)) / T*T;
+		double cError = (pow(sw.energy().second, 2) + sw.energySquare().second) / T*T;
+
+		double x = (sw.magnetSquare().first - pow(sw.magnet().first, 2)) / T;
+		double xError = (2 * pow(sw.magnet().second, 2)) / T; 
 
 		double percent_complete = (T - T_min) / (T_max - T_min) * 100;
 		cout << "\r" << setprecision(3) << percent_complete << "% complete ";
 		cout.flush();
 		
-		writer.write(T, eAve, eError, e2Ave, e2Error, mAve, mError, m2Ave, mError, c, cError, x, xError);
-        T += T_step;
-    }
+		writer.write(T,
+			sw.energy().first,
+			sw.energy().second,
+			sw.energySquare().first,
+			sw.energySquare().second,
+			sw.magnet().first,
+			sw.magnet().second,
+			sw.magnetSquare().first,
+			sw.magnetSquare().second,
+			c,
+			cError,
+			x,
+			xError
+		);
+	}
 
 	cout << endl;
 }
