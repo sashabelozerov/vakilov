@@ -8,6 +8,7 @@
 class SwendsenWang {
 public:
 	SwendsenWang();
+	~SwendsenWang();
 
 	void setCoupling(double J) { this->J = J; }
 	double coupling() const { return J; }
@@ -18,11 +19,13 @@ public:
 	void setTemperature(double T) { this->T = T; }
 	double temperature() const { return T; }
 
-	void setSizeX(int Lx) { this->Lx = Lx; N = Lx * Ly; }
-	void setSizeY(int Ly) { this->Ly = Ly; N = Lx * Ly; }
+	void setSizeX(int Lx) { this->Lx = Lx; N = Lx * Ly * Lz; }
+	void setSizeY(int Ly) { this->Ly = Ly; N = Lx * Ly * Lz; }
+	void setSizeZ(int Lz) { this->Lz = Lz; N = Lx * Ly * Lz; }
 
 	int sizeX() const { return Lx; }
 	int sizeY() const { return Ly; }
+	int sizeZ() const { return Lz; }
 
 	void initialize();
 	void initializeClusterVariables();
@@ -39,32 +42,36 @@ public:
 	void computeAverages();
 
 	std::pair<double, double> energy() const {
-		return std::make_pair(this->eAve, this->eError);
+		return std::make_pair(eAve, eError);
 	}
 	std::pair<double, double> energySquare() const {
-		return std::make_pair(this->e2Ave, this->e2Error);
+		return std::make_pair(e2Ave, e2Error);
 	}
 
 	std::pair<double, double> magnet() const {
-		return std::make_pair(this->mAve, this->mError); 
+		return std::make_pair(mAve, mError); 
 	}
 	std::pair<double, double> magnetSquare() const {
-		return std::make_pair(this->m2Ave, this->mError); 
+		return std::make_pair(m2Ave, mError); 
 	}
 
-private:
-	int Lx, Ly; // number of spins in x and y
-	int N;      // number of spins
-	int **s;    // the spins
-	double J;   // ferromagnetic coupling
-	double T;   // temperature
-	double H;   // magnetic field
-	int steps;  // steps so far
+	void free();
 
 private:
-	bool **iBondFrozen, **jBondFrozen;  // bond lattice - two bonds per spin
+	int Lx, Ly, Lz; // number of spins in x and y
+	int N;          // number of spins
+	int ***s;       // the spins
+	double J;       // ferromagnetic coupling
+	double T;       // temperature
+	double H;       // magnetic field
+	int steps;      // steps so far
+
+private:
+	bool ***iBondFrozen;                // bond lattice - three bonds per spin
+	bool ***jBondFrozen;
+	bool ***kBondFrozen;
 	double freezeProbability;           // 1 - e^(-2J/kT)
-	int **cluster;                      // cluster labels for spins
+	int ***cluster;                     // cluster labels for spins
 	int *labelLabel;                    // to determine proper labels
 	bool *sNewChosen;                   // has the new spin value been chosen?
 	int *sNew;                          // random new spin values in each cluster

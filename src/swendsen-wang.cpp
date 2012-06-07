@@ -16,6 +16,10 @@ SwendsenWang::SwendsenWang()
 {
 }
 
+SwendsenWang::~SwendsenWang() {
+	free();
+}
+
 inline double qadran() {
 	return mt_random_d();
 }
@@ -23,32 +27,46 @@ inline double qadran() {
 void SwendsenWang::initialize() {
     mt_random_init();
 
-    s = new int* [Lx];
-    for (int i = 0; i < Lx; i++)
-        s[i] = new int [Ly];
-    for (int i = 0; i < Lx; i++)
-        for (int j = 0; j < Ly; j++)
-            s[i][j] = qadran() < 0.5 ? +1 : -1;   // hot start
-
+    s = new int** [Lx];
+    for (int i = 0; i < Lx; i++) {
+        s[i] = new int* [Ly];
+        for (int j = 0; j < Ly; j++) {
+			s[i][j] = new int [Lz];
+			for (int k = 0; k < Lz; k++) {
+				s[i][j][k] = qadran() < 0.5 ? +1 : -1;   // hot start
+			}
+		}
+	}
     steps = 0;
 }
 
 void SwendsenWang::initializeClusterVariables() {
     // allocate 2-D arrays for bonds in x and y directions    
-    iBondFrozen = new bool* [Lx];
-    jBondFrozen = new bool* [Lx];
+    iBondFrozen = new bool** [Lx];
+    jBondFrozen = new bool** [Lx];
+	kBondFrozen = new bool** [Lx];
     for (int i = 0; i < Lx; i++) {
-        iBondFrozen[i] = new bool [Ly];
-        jBondFrozen[i] = new bool [Ly];
+        iBondFrozen[i] = new bool* [Ly];
+        jBondFrozen[i] = new bool* [Ly];
+		kBondFrozen[i] = new bool* [Ly];
+		for (int j = 0; j < Ly; j++) {
+			iBondFrozen[i][j] = new bool [Lz];
+			jBondFrozen[i][j] = new bool [Lz];
+			kBondFrozen[i][j] = new bool [Lz];
+		}
     }
 
     // compute the bond freezing probability
     freezeProbability = 1 - exp(-2*J/T);
 
     // allocate 2-D array for spin cluster labels
-    cluster = new int* [Lx];
-    for (int i = 0; i < Lx; i++)
-        cluster[i] = new int [Ly];
+    cluster = new int** [Lx];
+    for (int i = 0; i < Lx; i++) {
+        cluster[i] = new int* [Ly];
+		for (int j = 0; j < Ly; j++) {
+			cluster[i][j] = new int [Lz];
+		}
+	}
 
     // allocate arrays of size = number of spins for
     labelLabel = new int [N];        // proper label pointers
@@ -72,21 +90,27 @@ void SwendsenWang::oneMonteCarloStep() {
 void SwendsenWang::freezeOrMeltBonds() {
     // visit all the spins in the lattice
     for (int i = 0; i < Lx; i++)
-    for (int j = 0; j < Ly; j++) {
+    for (int j = 0; j < Ly; j++)
+	for (int k = 0; k < Lz; k++) {
 
         // freeze or melt the two bonds connected to this spin
         // using a criterion which depends on the Boltzmann factor
-        iBondFrozen[i][j] = jBondFrozen[i][j] = false;
+        iBondFrozen[i][j][k] = jBondFrozen[i][j][k] = kBondFrozen[i][j][k] = false;
 
         // bond in the i direction
         int iNext = i == Lx-1 ? 0 : i+1;
-        if (s[i][j] == s[iNext][j] && qadran() < freezeProbability)
-            iBondFrozen[i][j] = true;
+        if (s[i][j][k] == s[iNext][j][k] && qadran() < freezeProbability)
+            iBondFrozen[i][j][k] = true;
 
         // bond in the j direction
         int jNext = j == Ly-1 ? 0 : j+1;
-        if (s[i][j] == s[i][jNext] && qadran() < freezeProbability)
-            jBondFrozen[i][j] = true;
+        if (s[i][j][k] == s[i][jNext][k] && qadran() < freezeProbability)
+            jBondFrozen[i][j][k] = true;
+
+        // bond in the k direction
+        int kNext = k == Lz-1 ? 0 : k+1;
+        if (s[i][j][k] == s[i][j][kNext] && qadran() < freezeProbability)
+            kBondFrozen[i][j][k] = true;
     }
 }
 
@@ -101,60 +125,85 @@ void SwendsenWang::labelClusters() {
 
     // visit all lattice sites
     for (int i = 0; i < Lx; i++)
-    for (int j = 0; j < Ly; j++) {
+    for (int j = 0; j < Ly; j++)
+	for (int k = 0; k < Lz; k++) {
 
-        // find previously visited sites connected to i,j by frozen bonds
+        // find previously visited sites connected to i,j,k by frozen bonds
         int bonds = 0;
-        int iBond[4], jBond[4];
+        int iBond[6], jBond[6], kBond[6];
 
-        // check bond to i-1,j
-        if (i > 0 && iBondFrozen[i - 1][j]) {
+        // check bond to i-1,j,k
+        if (i > 0 && iBondFrozen[i - 1][j][k]) {
             iBond[bonds] = i - 1;
-            jBond[bonds++] = j;
+            jBond[bonds] = j;
+			kBond[bonds] = k;
+			++bonds;
         }
 
         // apply periodic conditions at the boundary:
-        // if i,j is the last site, check bond to i+1,j
-        if (i == Lx - 1 && iBondFrozen[i][j]) {
+        // if i,j,k is the last site, check bond to i+1,j,k
+        if (i == Lx - 1 && iBondFrozen[i][j][k]) {
             iBond[bonds] = 0;
-            jBond[bonds++] = j;
+            jBond[bonds] = j;
+			kBond[bonds] = k;
+			++bonds;
         }
 
-        // check bond to i,j-1
-        if (j > 0 && jBondFrozen[i][j - 1]) {
+        // check bond to i,j-1,k
+        if (j > 0 && jBondFrozen[i][j - 1][k]) {
             iBond[bonds] = i;
-            jBond[bonds++] = j - 1;
+            jBond[bonds] = j - 1;
+			kBond[bonds] = k;
+			++bonds;
         }
 
         // periodic boundary conditions at the last site
-        if (j == Ly - 1 && jBondFrozen[i][j]) {
+        if (j == Ly - 1 && jBondFrozen[i][j][k]) {
             iBond[bonds] = i;
-            jBond[bonds++] = 0;
+            jBond[bonds] = 0;
+			kBond[bonds] = k;
+			++bonds;
+        }
+
+        // check bond to i,j,k-1
+        if (k > 0 && kBondFrozen[i][j][k - 1]) {
+            iBond[bonds] = i;
+			jBond[bonds] = j;
+            kBond[bonds] = k - 1;
+			++bonds;
+        }
+
+        // periodic boundary conditions at the last site
+        if (k == Lz - 1 && kBondFrozen[i][j][k]) {
+            iBond[bonds] = i;
+			jBond[bonds] = j;
+            kBond[bonds] = 0;
+			++bonds;
         }
 
         // check number of bonds to previously visited sites
         if (bonds == 0) { // need to start a new cluster
-            cluster[i][j] = label;
+            cluster[i][j][k] = label;
             labelLabel[label] = label;
             ++label;
         } else {          // re-label bonded spins with smallest proper label
             int minLabel = label;
             for (int b = 0; b < bonds; b++) {
-                int pLabel = properLabel(cluster[iBond[b]][jBond[b]]);
+                int pLabel = properLabel(cluster[iBond[b]][jBond[b]][kBond[b]]);
                 if (minLabel > pLabel)
                     minLabel = pLabel;
             }
 
             // set current site label to smallest proper label
-            cluster[i][j] = minLabel;
+            cluster[i][j][k] = minLabel;
 
             // re-set the proper label links on the previous labels
             for (int b = 0; b < bonds; b++) {
-                int pLabel = cluster[iBond[b]][jBond[b]];
+                int pLabel = cluster[iBond[b]][jBond[b]][kBond[b]];
                 labelLabel[pLabel] = minLabel;
 
                 // re-set label on connected sites
-                cluster[iBond[b]][jBond[b]] = minLabel;
+                cluster[iBond[b]][jBond[b]][kBond[b]] = minLabel;
             }
         }
     }
@@ -162,22 +211,23 @@ void SwendsenWang::labelClusters() {
 
 void SwendsenWang::flipClusterSpins() {
     for (int i = 0; i < Lx; i++)
-    for (int j = 0; j < Ly; j++) {
-
+    for (int j = 0; j < Ly; j++)
+	for (int k = 0; k < Lz; k++) {
         // random new cluster spins values have not been set
-        int n = i * Lx + j;
+        int n = (i * Lx * Ly) + (j * Ly) + k;
         sNewChosen[n] = false;
 
         // replace all labels by their proper values
-        cluster[i][j] = properLabel(cluster[i][j]);
+        cluster[i][j][k] = properLabel(cluster[i][j][k]);
     }    
 
     int flips = 0;    // to count number of spins that are flipped
     for (int i = 0; i < Lx; i++)
-    for (int j = 0; j < Ly; j++) {
+    for (int j = 0; j < Ly; j++)
+	for (int k = 0; k < Lz; k++) {
 
         // find the now proper label of the cluster
-        int label = cluster[i][j];
+        int label = cluster[i][j][k];
 
         // choose a random new spin value for cluster
         // only if this has not already been done
@@ -187,8 +237,8 @@ void SwendsenWang::flipClusterSpins() {
         }
 
         // re-set the spin value and count number of flips
-        if (s[i][j] != sNew[label]) {
-            s[i][j] = sNew[label];
+        if (s[i][j][k] != sNew[label]) {
+            s[i][j][k] = sNew[label];
             ++flips;
         }
     }
@@ -204,11 +254,13 @@ void SwendsenWang::measureObservables() {
     int sSum = 0, ssSum = 0;
 
     for (int i = 0; i < Lx; i++)
-    for (int j = 0; j < Ly; j++) {
-        sSum += s[i][j];
+    for (int j = 0; j < Ly; j++)
+	for (int k = 0; k < Lz; k++) {
+        sSum += s[i][j][k];
         int iNext = i == Lx-1 ? 0 : i+1;
         int jNext = j == Ly-1 ? 0 : j+1;
-        ssSum += s[i][j]*(s[iNext][j] + s[i][jNext]);
+		int kNext = k == Lz-1 ? 0 : k+1;
+        ssSum += s[i][j][k]*(s[iNext][j][k] + s[i][jNext][k] + s[i][j][kNext]);
     }
 
     double e = -(J*ssSum + H*sSum)/ (double)N;
@@ -245,4 +297,40 @@ void SwendsenWang::computeAverages() {
 	m2Error = mQuadSum / nSum;
 	m2Error = sqrt(m2Error - m2Ave*m2Ave);
 	m2Error /= sqrt(double(nSum));
+}
+
+void SwendsenWang::free() {
+	for (int i = 0; i < Lx; i++) {
+		for (int j = 0; j < Ly; j++) {
+			delete[] s[i][j];
+		}
+		delete[] s[i];
+	}
+	delete[] s;
+
+    for (int i = 0; i < Lx; i++) {
+		for (int j = 0; j < Ly; j++) {
+			delete[] iBondFrozen[i][j];
+			delete[] jBondFrozen[i][j];
+			delete[] kBondFrozen[i][j];
+		}
+        delete[] iBondFrozen[i];
+        delete[] jBondFrozen[i];
+		delete[] kBondFrozen[i];
+    }
+    delete[] iBondFrozen;
+    delete[] jBondFrozen;
+	delete[] kBondFrozen;
+
+    for (int i = 0; i < Lx; i++) {
+		for (int j = 0; j < Ly; j++) {
+			delete[] cluster[i][j];
+		}
+		delete[] cluster[i];
+	}
+	delete[] cluster;
+
+    delete[] labelLabel;
+    delete[] sNewChosen;
+    delete[] sNew;
 }

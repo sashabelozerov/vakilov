@@ -92,6 +92,7 @@ int main(int argc, char** argv) {
 
 	sw.setSizeX(L);
 	sw.setSizeY(L);
+	sw.setSizeZ(L);
 
 	for (double T = T_min; T <= T_max; T += T_step) {
 		sw.setTemperature(T);
