@@ -25,7 +25,11 @@ public:
 				<< "mAvg"		<< "\t" 
 				<< "mAvgError"	<< "\t"
 				<< "m2Avg"		<< "\t"
-				<< "m2AvgError"	<< std::endl;
+				<< "m2AvgError"	<< "\t"
+				<< "c"			<< "\t"
+				<< "cError"		<< "\t"
+				<< "x"			<< "\t"
+				<< "xError"		<< std::endl;
 	}
 	
 	virtual ~CSVWriter(){
@@ -41,8 +45,12 @@ public:
 				double mAvg, 
 				double mAvgError,
 				double m2Avg, 
-				double m2AvgError		) {
-		
+				double m2AvgError,
+				double c,
+				double cError,
+				double x,
+				double xError) {
+
 		outFile << T			<< "\t" 
 				<< eAvg			<< "\t" 
 				<< eAvgError	<< "\t"
@@ -51,7 +59,11 @@ public:
 				<< mAvg			<< "\t" 
 				<< mAvgError	<< "\t"
 				<< m2Avg		<< "\t"
-				<< m2AvgError	<< std::endl;
+				<< m2AvgError	<< "\t"
+				<< c			<< "\t"
+				<< cError		<< "\t"
+				<< x			<< "\t"
+				<< xError		<< std::endl;
 	}
 	
 private:

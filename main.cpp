@@ -109,13 +109,23 @@ int main(int argc, char** argv) {
             measureObservables();
         }
         cout << " done" << endl;
+
         computeAverages();
+
+		double c = (e2Ave - eAve*eAve) / T*T;
+		double cError = (eError*eError + e2Error) / T*T;
+
+		double x = (m2Ave - mAve*mAve) / T;
+		double xError = (2 * mError*mError) / T; 
+
         cout << "T = " << T << " | Energy per spin = " << eAve << " +- " << eError << endl;
 		cout << "T = " << T << " | Energy^2 per spin = " << e2Ave << " +- " << e2Error << endl;
         cout << "T = " << T << " | M per spin = " << mAve << " +- " << mError << endl;
         cout << "T = " << T << " | M^2 per spin = " << m2Ave << " +- " << mError << endl;
+		cout << "T = " << T << " | Heat capacity = " << c << " +- " << cError << endl;
+		cout << "T = " << T << " | Suspectibility = " << x << " +- " << xError << endl;
 		
-		writer.write(T, eAve, eError, e2Ave, e2Error, mAve, mError, m2Ave, mError);
+		writer.write(T, eAve, eError, e2Ave, e2Error, mAve, mError, m2Ave, mError, c, cError, x, xError);
         T += T_step;
     }
 }
