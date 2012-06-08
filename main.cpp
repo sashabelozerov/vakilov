@@ -1,10 +1,4 @@
-/* 
- * File:   main.cpp
- * Author: wert
- *
- * Created on June 6, 2012, 10:23 PM
- */
-
+#include <cmath>
 #include <cstdlib>
 #include <iomanip>
 #include <iostream>
@@ -15,6 +9,7 @@
 #include "mersenne.h"
 #include "swendsen-wang.h"
 #include "csvwriter.h"
+
 using namespace std;
 
 int main(int argc, char** argv) {
